@@ -1,0 +1,187 @@
+﻿'USEUNIT qaUtil
+'USEUNIT qaGlobalVar
+
+Function CreateLogFile
+  Dim TimeStamp
+  
+  CreateLogFile = False
+  TimeStamp =  qaUtil.GetTimestamp()
+  
+  IF(qaGlobalVar.IsList)Then
+    IF (qaLogReport.CreateArrLog)Then
+      qaGlobalVar.ARRLOG.Add "Step Name,Message,Statuss"
+      CreateLogFile = True
+    Else
+      CreateLogFile = False
+    End IF
+  ElseIf(qaGlobalVar.IsCSV)Then
+    Dim objFSO, objTextStream
+    Const fsoForWriting = 8
+    qaGlobalVar.REPORTPATH = Project.Path + "TestResults\" & qaGlobalVar.SUITETORUN & "_Results_" & TimeStamp & ".csv"
+    Set objFSO = CreateObject("Scripting.FileSystemObject")
+    If NOT objFSO.FileExists(qaGlobalVar.REPORTPATH) Then
+      Call objFSO.CreateTextFile(qaGlobalVar.REPORTPATH)
+
+      Set objTextStream = objFSO.OpenTextFile(qaGlobalVar.REPORTPATH, fsoForWriting, True)
+
+      'Display the contents of the text file
+      objTextStream.WriteLine "Step Name,Message,Statuss"
+
+      'Close the file and clean up
+      objTextStream.Close
+      Set objTextStream = Nothing
+      CreateLogFile = True
+    Else
+      CreateLogFile = False
+    End If
+  Else
+    qaGlobalVar.REPORTPATH = Project.Path + "TestResults\" & qaGlobalVar.SUITETORUN & "_Results_" & TimeStamp & ".xlsx"
+
+    Call qaUtil.closeOpenApp("excel")
+    
+    Set xlobj = Createobject("Excel.Application")
+    xlobj.Visible= True   
+    xlobj.Workbooks.Add
+    
+    Set workBookObj=xlobj.Workbooks(1)
+    workBookObj.SaveAs qaGlobalVar.REPORTPATH
+    xlobj.Quit
+    
+    Set workBookObj = Nothing
+    Set xlobj = Nothing
+    If aqFileSystem.Exists(qaGlobalVar.REPORTPATH) Then
+      Call qaLogReport.CreateLogSheet(qaGlobalVar.REPORTPATH,qaGlobalVar.SUITETORUN,1)
+      CreateLogFile = True
+    Else
+      CreateLogFile = False
+    End If 
+  End If
+End Function
+
+Sub CreateLogSheet(ReportPath,SheetName,AppIndex)
+  Dim xlobj, bookObj, wsheetObj, objRange
+  
+  Set xlobj =  Createobject("Excel.Application")
+  Set bookObj = xlobj.Workbooks.Open(ReportPath)
+  
+  if AppIndex > 3 then
+    call bookObj.Sheets.Add(, bookObj.Sheets(bookObj.Sheets.Count))
+  end if
+    
+  bookObj.Worksheets(AppIndex).name = SheetName
+    
+  Set wsheetObj = bookObj.Worksheets(SheetName)
+    
+  wsheetObj.cells(1,1) = "Step Name"
+  wsheetObj.cells(1,1).font.bold = True
+  wsheetObj.cells(1,1).font.Color = vbWhite
+  wsheetObj.cells(1,1).interior.ColorIndex  = 9'vbYellow
+    
+  wsheetObj.cells(1,2) = "Message"
+  wsheetObj.cells(1,2).font.bold = True
+  wsheetObj.cells(1,2).font.Color = vbWhite
+  wsheetObj.cells(1,2).interior.ColorIndex  = 9'vbYellow
+    
+  wsheetObj.cells(1,3) = "Status"
+  wsheetObj.cells(1,3).font.bold = True
+  wsheetObj.cells(1,3).font.Color = vbWhite
+  wsheetObj.cells(1,3).interior.ColorIndex  = 9'vbYellow
+
+  Set objRange = wsheetObj.UsedRange
+  objRange.EntireColumn.Autofit()
+  
+  bookObj.Save
+  xlobj.Quit
+  
+  Set bookObj = Nothing
+  Set xlobj = Nothing
+End Sub
+
+Sub LogReport(ReportPath,SheetName,StepName,Message,Status)
+'Log Result In Array List
+  IF(IsList)Then
+    IF NOT(qaGlobalVar.ARRLOG Is Nothing)Then
+      qaGlobalVar.ARRLOG.Add StepName &","& Message &","& Status
+    Else
+      Log.Error"Error"
+      Exit Sub
+    End IF
+'Log Result In CSV File
+  ELSEIF(IsCSV)Then
+    Const fsoForWriting = 8
+
+    Dim objFSO
+    Set objFSO = CreateObject("Scripting.FileSystemObject")
+
+    'Open the text file
+    Dim objTextStream
+    Set objTextStream = objFSO.OpenTextFile(ReportPath, fsoForWriting, True)
+
+    'Display the contents of the text file
+    objTextStream.WriteLine StepName &","& Message &","& Status
+
+    'Close the file and clean up
+    objTextStream.Close
+    Set objTextStream = Nothing
+    Set objFSO = Nothing
+'Log Result In Excel File
+  ELSE
+    Dim xlobj, bookObj, wsheetObj, objRange, RowCount, NextRow
+  
+    Set xlobj =  Createobject("Excel.Application")
+    Set bookObj = xlobj.Workbooks.Open(ReportPath)
+    Set wsheetObj = bookObj.Worksheets(SheetName)
+  
+    RowCount = wsheetObj.usedrange.rows.count
+    NextRow = RowCount + 1
+  
+    wsheetObj.cells(NextRow,1) = aqString.Trim(StepName)
+    wsheetObj.cells(NextRow,2) = aqString.Trim(Message)
+    wsheetObj.cells(NextRow,3) = aqString.Trim(aqString.ToUpper(Status))
+  
+    Select Case aqString.ToUpper(Status)
+  		Case "PASS"  
+        wsheetObj.cells(NextRow,3).font.ColorIndex = 10
+  		Case "FAIL"   
+        wsheetObj.cells(NextRow,3).font.ColorIndex = 3
+      Case "SKIP"   
+        wsheetObj.cells(NextRow,3).font.color = vbblack
+  		Case Else     
+        wsheetObj.cells(NextRow,3).font.color = vbblack
+  	End Select
+  
+    wsheetObj.cells(NextRow,3).font.bold = True
+  	wsheetObj.Range("A:C").Columns.AutoFit
+  
+    RowCount = wsheetObj.usedrange.rows.count
+  
+  	wsheetObj.Range(wsheetObj.cells(1,1),wsheetObj.cells(RowCount,3)).Borders.LineStyle = 1
+  	wsheetObj.Range(wsheetObj.cells(1,1),wsheetObj.cells(RowCount,3)).Borders.color = RGB(0,0,0)
+  	wsheetObj.Range(wsheetObj.cells(1,1),wsheetObj.cells(RowCount,3)).Borders.Weight = 2
+  
+    bookObj.Save
+    xlobj.Quit
+  
+    Set bookObj = Nothing
+    Set xlobj = Nothing
+  End IF
+End Sub
+
+Function CreateArrayList
+  CreateArrayList = False
+  Set qaGlobalVar.ARRLOG = CreateObject("System.Collections.ArrayList")
+  IF NOT(qaGlobalVar.ARRLOG Is Nothing)Then
+    CreateArrayList = True
+  Else
+    CreateArrayList = False
+  End IF
+End Function
+
+Sub LogReportInArrayList(Message)
+  IF NOT(qaGlobalVar.ARRLOG Is Nothing)Then
+    qaGlobalVar.ARRLOG.Add Message
+  Else
+    Log.Error"Error"
+    Exit Sub
+  End IF
+End Sub

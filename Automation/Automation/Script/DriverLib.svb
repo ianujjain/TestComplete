@@ -1,0 +1,153 @@
+﻿'USEUNIT qaActions
+'USEUNIT qaObject
+'USEUNIT qaGlobalVar
+'USEUNIT qaUtil
+'USEUNIT qaLogReport
+'USEUNIT qaTestCases
+
+Sub Main  
+  ON ERROR RESUME NEXT
+    Call qaUtil.TerminateProcess
+    '**********************************************************************************************************************************************************
+    'Create an ArrayList Collection Object For Save Test Result.
+    '**********************************************************************************************************************************************************  
+    Dim IsArrayListCreated
+    IsArrayListCreated =  qaLogReport.CreateArrayList()
+  
+    IF NOT(IsArrayListCreated)Then
+      Runner.Stop()
+    End IF
+  
+    '**********************************************************************************************************************************************************
+    'Creating Object Repository for Current Application
+    '**********************************************************************************************************************************************************  
+    Dim ObjRepoPath, ObjRepoName, IsObjRepoCreated
+    
+    Set qaGlobalVar.OBJREPO = CreateObject("Scripting.Dictionary")
+    ObjRepoName = qaObject.GetObjectRepository(qaGlobalVar.SUITETORUN)
+    ObjRepoPath = qaObject.GetInputFilePath(qaGlobalVar.SUITETORUN)
+  
+    IsObjRepoCreated = qaObject.CreateObjRepo(qaGlobalVar.OBJREPO,ObjRepoName,ObjRepoPath)
+
+    If(IsObjRepoCreated)Then
+      Call qaLogReport.LogReportInArrayList("Log Report If Object Repository is successfully created.,Object Repository is successfully created for " & qaGlobalVar.SUITETORUN &",PASS,Null")
+    Else
+      Call qaLogReport.LogReportInArrayList("Log Report If Object Repository is successfully created.,Object Repository is successfully created for " & qaGlobalVar.SUITETORUN &",FAIL,Null")
+      Runner.Stop()
+    End If
+  
+    '**********************************************************************************************************************************************************
+    'Load All TC Into 2D- Array.
+    '**********************************************************************************************************************************************************
+    Dim TCSheetPath,IsTestCaseCreated,ArrTestCase()
+  
+    TCSheetPath = qaObject.GetInputFilePath(qaGlobalVar.SUITETORUN)    
+    IsTestCaseCreated = qaTestCases.GetArrTestCase(ArrTestCase,TCSheetPath)  
+  
+    If(IsTestCaseCreated)Then
+      Call qaLogReport.LogReportInArrayList("Log Report If Test Cases is successfully loaded in Memory.,Test Cases is successfully loaded in Memory for " & qaGlobalVar.SUITETORUN &",PASS,Null")'Null
+    Else
+      Call qaLogReport.LogReportInArrayList("Log Report If Test Cases is successfully loaded in Memory.,Test Cases is successfully loaded in Memory for " & qaGlobalVar.SUITETORUN &",FAIL,Null")
+      Call qaUtil.TerminateProcess
+      Runner.Stop()
+    End If
+
+    '**********************************************************************************************************************************************************
+    'Test Case Execution.
+    '********************************************************************************************************************************************************** 
+    
+    Dim Description, Action, IsExcute2ObjectAlias, ObjectValue, Data, OverrideData, IsExcute,Excute
+    Dim Attr
+    
+    For ArrIndex = 1 To UBound(ArrTestCase)
+    
+      Description   =   aqString.Trim(ArrTestCase(ArrIndex,0)) 
+      Action        =   aqString.ToUpper(aqString.Trim(ArrTestCase(ArrIndex,1)))
+      ObjectAlias   =   aqString.Trim(ArrTestCase(ArrIndex,2))
+      Data          =   aqString.Trim(ArrTestCase(ArrIndex,3))
+      OverrideData  =   aqString.Trim(ArrTestCase(ArrIndex,4))
+      IsExcute      =   aqString.ToUpper(aqString.Trim(ArrTestCase(ArrIndex,5)))
+      
+      qaGlobalVar.TCDESCRIPTION = Description
+      
+      'Log Test Case Name In TestComplete Log.
+      IF ObjectAlias = "TCBEGIN" Then        
+        Select Case IsExcute
+          Case  "Y"
+            Set Attr = Log.CreateNewAttributes()
+            Attr.BackColor = clAqua
+            Attr.Bold = True
+            Log.Message "Test Case Name: " + CStr(qaGlobalVar.TCDESCRIPTION) + ", Execution Conditional: {'Y'}","",pmLowest,Attr
+            Call qaLogReport.LogReportInArrayList("Test Case," & qaGlobalVar.TCDESCRIPTION & ",START,33")
+          Case  "N"
+            Set Attr = Log.CreateNewAttributes()
+            Attr.BackColor = clSkyBlue
+            Attr.Bold = True
+            Log.Message "Test Case Name: " + CStr(qaGlobalVar.TCDESCRIPTION) + ", Execution Conditional: {'N'}","",pmLowest,Attr
+          Case Else
+            Set Attr = Log.CreateNewAttributes()
+            Attr.BackColor = clRed
+            Attr.Bold = True
+            Log.Message "Test Case Name: " + CStr(qaGlobalVar.TCDESCRIPTION) + ", Execution Conditional: {'UNKNOWN'}","",pmLowest,Attr
+        End Select
+      End IF
+      
+      
+      'Log In TestComplete Log, If Action is empty/null.
+      IF((IsNull(Action) OR IsEmpty(Action) OR Action = "") AND IsExcute = "Y" AND ObjectAlias <> "TCBEGIN" AND ObjectAlias <> "TCEND")Then
+        Set Attr = Log.CreateNewAttributes()
+        Attr.BackColor = clRed'clLime
+        Attr.Bold = True
+        Log.Message "Description: " + CStr(Description) + ", Action is: {'Empty',{Null}}","",pmLowest,Attr
+      End IF   
+      
+      'Log In TestComplete Log, If ObjectAlias is empty/null.
+      IF((IsNull(ObjectAlias) OR IsEmpty(ObjectAlias) OR ObjectAlias = "") AND IsExcute = "Y" AND ObjectAlias <> "TCBEGIN" AND ObjectAlias <> "TCEND")Then
+        Set Attr = Log.CreateNewAttributes()
+        Attr.BackColor = clRed'clLime
+        Attr.Bold = True
+        Log.Message "Description: " + CStr(Description) + ", Object Alias is: {'Empty',{Null}}","",pmLowest,Attr
+      End IF
+      
+      If (IsExcute = "Y")Then
+        If(qaGlobalVar.IsIGNORECONDITION = "Y")Then
+          IF (ObjectAlias <> "TCEND")Then
+            Call qaLogReport.LogReportInArrayList("Skipping This Step,"+Description+",SKIP,Null")
+          End IF
+          IF (ObjectAlias = "TCEND") Then
+            Log.Checkpoint "Set Ignore Condition Back To N"
+            qaGlobalVar.IsIGNORECONDITION = "N"
+            Call qaLogReport.LogReportInArrayList("Test Case," & Description & ",END,44")
+          End IF
+        Else
+          ObjectValue = qaObject.GetObjectSelector(ObjectAlias)
+          IF (ObjectValue <> "NULL" OR ObjectValue <> "" OR IsEmpty(ObjectValue) OR IsEmpty(ObjectValue)) Then
+            '*************************************************************************
+            Call qaActions.Action(Action, ObjectValue,Data, OverrideData)
+            '*************************************************************************
+            If Err.Number <> 0 Then
+              Call qaLogReport.LogReportInArrayList("Test Case Failed at,"+Description+",FAIL,Null")
+              'Log.Error "Error Found-> Error Number: {'"+ aqConvert.IntToStr(Err.Number)+"'}; Error Description: {'"+ Err.Description+"'}"
+              Err.Clear()
+              qaGlobalVar.IsIGNORECONDITION = "Y"
+            End If
+          end If
+          IF (ObjectAlias = "TCEND") Then
+            Call qaLogReport.LogReportInArrayList("Test Case," & Description & ",END,44")
+          End IF
+        End If
+      End If
+    Next
+    '**********************************************************************************************************************************************************
+    'Generate Test Result Report As Per Set qaGlobalVar.REPORTTYPE Parameter
+    '**********************************************************************************************************************************************************  
+    Call qaLogReport.GenerateReport
+    Call qaUtil.TerminateProcess
+'    If Err.Number <> 0 Then
+'      Log.Error "Error Found-> Error Number: {'"+ aqConvert.IntToStr(Err.Number)+"'}; Error Description: {'"+ Err.Description+"'}"
+'      Err.Clear()
+'      Call qaLogReport.GenerateReport
+'      Call qaUtil.TerminateProcess
+'    End If
+'  ON ERROR GOTO 0
+End Sub

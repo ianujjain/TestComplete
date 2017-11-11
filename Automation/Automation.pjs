@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<Root signature="{24B6FA0B-0143-461A-9758-AEB9E9A9428B}" version="12.0" key="{949D06ED-334F-49B5-BCCA-4A4FE19FC0AD}">
+	<children>
+		<child name="Automation" key="{D7EA718E-03F8-4D4A-A0E2-0B47525A4465}" type="Project" typeId="{362A8EE5-675E-43A9-869D-06ECE80B0CB4}" pluginName="">
+			<data path="Automation\Automation.mds" />
+		</child>
+	</children>
+	<folders />
+	<testItems key="{235A2252-FA72-45F3-A4C7-F3CAD57D2D2F}">
+		<children>
+			<testItem key="{D7EA718E-03F8-4D4A-A0E2-0B47525A4465}" enabled="True" timeout="0" stopOnError="True" description="" />
+		</children>
+	</testItems>
+	<variables key="{CDF038A9-1487-4F9C-B49B-6DEF14959D48}">
+		<data Version="3" />
+	</variables>
+	<analysis key="{D17A5A39-0607-47DE-A889-906BCD278131}" />
+	<scc key="{C900492B-D218-429C-9AA0-264B7D78CA88}" name="Git Plugin">
+		<data />
+	</scc>
+	<extender key="{1A3FC97E-9A66-4716-B166-35D10B4146E0}" />
+</Root>

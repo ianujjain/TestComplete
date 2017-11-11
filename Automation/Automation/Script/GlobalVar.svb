@@ -1,0 +1,25 @@
+﻿' Defining all Global Variables
+Dim APPNAME,APP_INDEX,FILEPATHVALUE,XLOBJ,RESULT_WBOOK,WSHEET,GRRC_DFL,PREFILL_VAL, DEL_FILE_TBL_ID
+Dim APPSTOTEST,PAGEOBJ,PAROBJ,DICTOBJ, MDBINPUTPARAMS,ENVIRONMENT,SUITETORUN
+Dim USERNM,PASSWORD,INSIGHTANALYSTUSER,INSIGHTANALYSTUSERPASS,INSIGHTMANUSER,INSIGHTMANPASS
+Dim FILEINPUTEXCEL, FILEERRLOGS, ALLTEMPFILES, DWNFILEXML, DWNFILEPDF, TEMPVAR, DWNFILE, APPLIST
+Dim OBJREPO,TEST_REPORT, TCNAME, PERFLOGS, IGNEXECCOND, DWNFOLDER, BACKUPFOLDER, TEMPFOLDER,ERRCOUNT,RERUNVAR
+Dim TCSTEP,REPEXPORTS,  RERUNWS, DEBUGMODE,APPOBJREP, EXTLIBFOLD,UNIPDFIMGMASK,OLDLOGIN,REPMAPPING,APPMAPPING
+Dim DWNFILEZIP, ZIPFLAG, BCKZIPFOLDER
+
+'Set Values For Global Variables
+
+TESTBROWSER = "iexplore"
+LOGINURL = "https://*seic.com/*"
+PAGEURL = "https://*seic.com/*"
+
+'##################################################################################
+'###############################  QA CONFIGURATION  ###############################
+'##################################################################################
+APPURL = "https://qa.ims.ea.corp.seic.com"
+USERNM = "Aazim_qa"
+PASSWORD = "Rinnegan@04"
+ENVIRONMENT = "QA"
+'##################################################################################
+'##################################################################################
+'##################################################################################

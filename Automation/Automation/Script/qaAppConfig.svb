@@ -1,0 +1,11 @@
+﻿'USEUNIT qaGlobalVar
+Sub InitializeStaticData()
+  'initialize data about Object Repository mapping
+  Set qaGlobalVar.REPMAPPING = CreateObject("Scripting.Dictionary")
+  qaGlobalVar.REPMAPPING.Add "ADMINREG","ADMINOBJREPO"
+  
+  'Initialize data about Object Repository to APPNAME mapping
+  Set qaGlobalVar.APPMAPPING = CreateObject("Scripting.Dictionary")
+  qaGlobalVar.APPMAPPING.Add "ObjRepo","OrangeHRM"
+  qaGlobalVar.APPMAPPING.Add "ADMINOBJREPO","ADMIN"
+End Sub

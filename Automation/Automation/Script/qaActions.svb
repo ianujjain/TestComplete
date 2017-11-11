@@ -1,0 +1,65 @@
+﻿'USEUNIT qaObject
+'USEUNIT qaGlobalVar
+'USEUNIT qaLogReport
+
+Function Action(ActionKey,objSelector,Data,OverrideData)
+  Dim WebElement
+	Select Case ActionKey
+    Case "OPEN"
+      Dim Page
+      ' Start the browser
+      Browsers.Item(qaGlobalVar.BROWSERNAME).Run(qaGlobalVar.APPURL)
+      ' Get a web page object
+      Set Page = Sys.Browser(qaGlobalVar.BROWSERNAME).Page(qaGlobalVar.APPURL) 
+  	Case "KEYIN"
+      Set WebElement = qaObject.GetWebElement(objSelector)
+      ON ERROR Resume NEXT
+      WebElement.scrollIntoView(True)
+      ON ERROR GOTO 0
+      Log.Enabled = False
+      WebElement.value = ""
+      Log.Enabled = TRUE
+      WebElement.Focus
+      WebElement.click()
+      Sys.Desktop.Keys Data
+    Case "CLICK"
+      Set WebElement = qaObject.GetWebElement(objSelector)
+      ON ERROR Resume NEXT
+      WebElement.scrollIntoView(True)
+      ON ERROR GOTO 0
+      call WebElement.click()
+    CASE "LISTITEM"   
+      Set WebElement = qaObject.GetWebElement(objSelector)
+      ON ERROR Resume NEXT
+      WebElement.scrollIntoView(True)
+      ON ERROR GOTO 0
+      WebElement.click()
+      Sys.Desktop.Keys CStr(Data)
+      aqutils.Delay 1000
+      Sys.Desktop.Keys "[Tab]"
+      aqutils.Delay 1000
+    Case "PRINT"
+      Set WebElement = qaObject.GetWebElement(objSelector)   
+      if WebElement is Nothing then
+        Set WebElement = qaObject.WaitForControl(objSelector)
+      end if
+      Set Action =  WebElement
+    Case "WAIT"
+      aqUtils.Delay(aqConvert.StrToInt(Data))
+    Case "SYNC"
+      Set WebElement = qaObject.GetObject(objSelector)   
+      if WebElement is Nothing then
+        Set WebElement = qaObject.WaitForControl(objSelector)
+      end if
+      Set Action =  WebElement
+    Case "REPORT"
+      Dim IsStatus, WebElements                  
+      Set WebElements = qaObject.GetWebElement(objSelector)
+      If (WebElements is Nothing)Then
+        IsStatus = "FAIL"
+      Else
+        IsStatus = "PASS"
+      End If        
+      Call qaLogReport.LogReportInArrayList(qaGlobalVar.TCDESCRIPTION &","& Data & "," & IsStatus+",Null")     
+  End Select
+End Function

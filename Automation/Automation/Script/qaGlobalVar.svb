@@ -1,0 +1,40 @@
+﻿' Defining all Global Variables
+Dim APPURL,USERNAME,PASSWORD,ENVIRONMENT
+Dim BROWSERNAME,LOGINURL,PAGEURL
+Dim SUITETORUN
+Dim REPMAPPING, APPMAPPING
+Dim TESTREPORT
+Dim REPORTPATH
+Dim OBJREPO
+
+Dim REPORTTYPE
+'REPORTTYPE="EXCEL"
+ReportType="CSV"
+
+Dim IsIGNORECONDITION
+IsIGNORECONDITION = "N"
+
+Dim ARRLOG
+Dim TCDESCRIPTION
+
+
+'Set Values For Global Variables
+BROWSERNAME = "chrome"
+'BROWSERNAME = "iexplore"
+'BROWSERNAME = "firefox"
+'BROWSERNAME = "chrome"
+'BROWSERNAME = "edge"
+'PAGEURL = "http://*opensource.demo.orangehrmlive.com/*"
+PAGEURL = "http://*orangehrmlive.com/*"
+SUITETORUN = "ADMINREG"
+'##################################################################################
+'###############################  QA CONFIGURATION  ###############################
+'##################################################################################
+APPURL = "http://opensource.demo.orangehrmlive.com/"
+USERNAME = "admin"
+PASSWORD = "admin"
+ENVIRONMENT = "QA"
+'##################################################################################
+'##############################  E-Mail CONFIGURATION  ############################
+'##################################################################################
+EMAILRECIPIENT = "ajain1@seic.com"

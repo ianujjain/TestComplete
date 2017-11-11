@@ -1,0 +1,368 @@
+﻿'USEUNIT qaLogReport
+'USEUNIT qaGlobalVar
+
+function getRandTextInput
+  dim strLength, str
+  strLength = RandomNum(5,10)
+  str = RandomString(strLength)
+  log.Message "Calculated Random String: " + str
+  'getRandTextInput =  str
+end function
+
+
+Function RandomNum(min,max)
+  Dim rand
+  
+  Randomize
+  rand = Int((max-min+1)*Rnd+min)
+  RandomNum = rand
+end Function
+
+Function RandomString(length)
+  Randomize
+  Dim rgch,i
+  rgch = "abcdefghijklmnopqrstuvwxyz"
+  'rgch = rgch & UCase(rgch) & "0123456789" & "@#$%&*()_-+={}|\;:'<>.?/"
+  'rgch = rgch & UCase(rgch) & "0123456789" & "@#$%&*()_-+={}|\;:'.?/"
+  rgch = rgch & UCase(rgch) & "0123456789"
+  For i = 1 To length 
+      RandomString = RandomString & Mid(rgch, Int(Rnd() * Len(rgch) + 1), 1)
+  Next
+End Function
+
+
+Sub StringComparisonSample
+  Dim Status:Status = "SKIP"
+  If(aqString.ToUpper(Status) = "PASS") Then
+    Log.Message  "PASS"
+  ElseIf(aqString.ToUpper(Status) = "FAIL") Then
+    Log.Message  "FAIL"
+  Else
+    Log.Message  "SKIP"
+  End If
+End Sub
+
+Function CreateObjRepo
+	Dim objexcel, objWorkbook, objDriverSheet, ColumnCount, RowCounts
+  
+	set objexcel = Createobject("Excel.Application")
+	Set objWorkbook = objExcel.WorkBooks.Open("D:\Automation\Automation\Automation\InputfFile\OrangeHRM.xlsx")
+	Set objDriverSheet = objWorkbook.Worksheets("QA-Recruitment")
+	
+  ColumnCount = objDriverSheet.usedrange.columns.count
+	RowCount = objDriverSheet.usedrange.rows.count
+	
+  For i = 2 to RowCount
+    TestStepsDescription = objDriversheet.cells(i,2)
+    Action = objDriversheet.cells(i,3)
+    Alias = objDriversheet.cells(i,4)
+    TestData = objDriversheet.cells(i,5)
+    OverrideTestData  = objDriversheet.cells(i,6)
+    Excute = objDriversheet.cells(i,7)
+	Next
+  Log.Message RowCount
+End Function
+
+Sub Log_Report(Report_Path,sheetName,SCName, StrValue, Test_Status,colorIndex)
+	Dim UsedRowCnt
+
+	Set app = CreateObject("Excel.Application")
+	Set book = app.Workbooks.Open(Report_Path)
+
+	Set sheet = book.Sheets(sheetName)
+	app.DisplayAlerts = False
+	
+	UsedRowCnt=sheet.usedrange.rows.count
+
+	NextRow=UsedRowCnt+1      
+	sheet.cells(NextRow,1)= ScName
+	sheet.cells(NextRow,2)= StrValue
+	sheet.cells(NextRow,3)= Test_Status
+	
+	Select Case lcase(Test_Status)
+		Case "pass","not required"   sheet.cells(NextRow,3).font.color=vbgreen
+		Case "fail"   sheet.cells(NextRow,3).font.color=vbred
+		Case Else     sheet.cells(NextRow,3).font.color=vbblack
+	end Select
+	
+	if not IsNull(colorIndex) then
+		sheet.cells(NextRow,1).Interior.ColorIndex = colorIndex
+		sheet.cells(NextRow,2).Interior.ColorIndex = colorIndex
+		sheet.cells(NextRow,3).Interior.ColorIndex = colorIndex
+	end if
+	
+	sheet.Range("A:C").Columns.AutoFit
+	UsedRowCnt=sheet.usedrange.rows.count
+	sheet.Range(sheet.cells(1,1),sheet.cells(UsedRowCnt,3)).Borders.LineStyle = 1
+	sheet.Range(sheet.cells(1,1),sheet.cells(UsedRowCnt,3)).Borders.color = RGB(0,0,0)
+	sheet.Range(sheet.cells(1,1),sheet.cells(UsedRowCnt,3)).Borders.Weight = 2
+	
+	book.Save
+	app.Quit
+	set book = Nothing
+	set app = Nothing
+End Sub
+
+
+Sub TestLogReport
+  Call qaLogReport.LogReport("D:\Automation\Automation\Automation\TestResults\OrangeHRM_Results_10.25.2017.4.18.26.PM.xlsx","OrangeHRM","StepName","Message","PASS")
+  Call qaLogReport.LogReport("D:\Automation\Automation\Automation\TestResults\OrangeHRM_Results_10.25.2017.4.18.26.PM.xlsx","OrangeHRM","StepName","Message","FAIL")
+  Call qaLogReport.LogReport("D:\Automation\Automation\Automation\TestResults\OrangeHRM_Results_10.25.2017.4.18.26.PM.xlsx","OrangeHRM","StepName","Message","SKIP")
+End Sub
+
+Sub CsvToExcel
+  Dim myXL
+  Const xlDelimited = 1
+  Const xlWorkbookNormal = -4143
+
+  Set myXL=CreateObject("Excel.Application")
+  myXL.Visible=False
+  myXL.application.displayalerts=false  
+
+  
+  myXL.WorkBooks.OpenText"D:\Automation\Automation\Automation\TestResults\Dude.csv", , , xlDelimited, , , , , True 'Change the source path as needed.
+
+  myXL.DisplayAlerts=False
+  myXL.ActiveWorkbook.SaveAs "D:\Automation\Automation\Automation\TestResults\Dude.xls", xlWorkbookNormal 'Change the destination path as needed.
+  myXL.DisplayAlerts=True
+
+  myXL.ActiveWorkbook.Close False
+  myXL.Quit
+
+  Set myXL = Nothing
+End Sub
+
+
+Sub ExcelToArray
+  Dim arrTestCase
+  arrTestCase = ReadExcelFile("D:\Automation\Automation\Automation\InputfFile\ADMIN.xlsx")
+  Log.Message UBound(arrTestCase)
+  Log.Message arrTestCase(0,0)
+End Sub
+
+Function ReadExcelFile(ByVal strFile)
+	
+' Local variable declarations
+	Dim objExcel, objSheet, objCells
+	Dim nUsedRows, nUsedCols, nTop, nLeft, nRow, nCol
+	Dim arrSheet()
+	
+' Default return value
+	ReadExcelFile = Null
+	
+' Create the Excel object
+	On Error Resume Next
+	Set objExcel = CreateObject("Excel.Application")
+	If (Err.Number <> 0) Then
+		Exit Function
+	End If
+	
+' Don't display any alert messages
+	objExcel.DisplayAlerts = 0  
+	
+' Open the document as read-only
+	On Error Resume Next
+	Call objExcel.Workbooks.Open(strFile, False, True)
+	If (Err.Number <> 0) Then
+		Exit Function
+	End If
+	
+' If you wanted to read all sheets, you could call
+' objExcel.Worksheets.Count to get the number of sheets
+' and the loop through each one. But in this example, we
+' will just read the first sheet.
+	Set objSheet = objExcel.ActiveWorkbook.Worksheets(2)
+	
+' Get the number of used rows
+	nUsedRows = objSheet.UsedRange.Rows.Count
+	
+' Get the number of used columns
+	nUsedCols = objSheet.UsedRange.Columns.Count
+	
+' Get the topmost row that has data
+	nTop = objSheet.UsedRange.Row
+	
+' Get leftmost column that has data
+	nLeft = objSheet.UsedRange.Column
+	
+' Get the used cells
+	Set objCells = objSheet.Cells
+	
+' Dimension the sheet array
+	ReDim arrSheet(nUsedRows - 1, nUsedCols - 1)
+	
+' Loop through each row
+	For nRow = 0 To (nUsedRows - 1)
+' Loop through each column
+		For nCol = 0 To (nUsedCols - 1)
+' Add the cell value to the sheet array
+			arrSheet(nRow, nCol) = objCells(nRow + nTop, nCol + nLeft).Value
+		Next
+	Next
+	
+' Close the workbook without saving
+	Call objExcel.ActiveWorkbook.Close(False)
+	
+' Quit Excel
+	objExcel.Application.Quit
+	
+' Return the sheet data to the caller
+	ReadExcelFile = arrSheet
+	
+End Function
+
+
+Sub TestCreateLogArray
+  Call CreateArrLog
+  Call LogReportInArray("qweqe,adads,adada")
+  Call LogReportInArray("adsasd,adads,adada")
+  Call LogReportInArray("vnvnv,adads,adada")
+  For Each strItem in qaGlobalVar.ARRLOG
+    Log.Message strItem
+  Next
+End Sub
+
+
+Function CreateArrLog 
+  CreateArrLog = False
+  Set qaGlobalVar.ARRLOG = CreateObject("System.Collections.ArrayList")
+  IF NOT(qaGlobalVar.ARRLOG Is Nothing)Then
+    CreateArrLog = True
+  Else
+    CreateArrLog = False
+  End IF
+End Function
+
+Sub LogReportInArray(Message)
+  IF NOT(qaGlobalVar.ARRLOG Is Nothing)Then
+    qaGlobalVar.ARRLOG.Add Message
+  Else
+    Log.Error"Error"
+    Exit Sub
+  End IF
+End Sub
+
+
+
+Sub TestCreateHTMLFromExcel
+  Call CreateHTMLFromExcel("D:\Automation\Automation\Automation\TestResults\Demo.xlsx","ADMINREG","D:\Automation\Automation\Automation\TestResults\Demo.html")
+End Sub
+
+
+Function CreateHTMLFromExcel(strWbk,strWsheetName,strHTMLFile)
+Set oExcel = Createobject("Excel.Application")
+oExcel.visible = false
+Set objExcelWB = oExcel.Workbooks.Open(strWbk)
+Set objExcelWS = objExcelWB.Worksheets(strWsheetName)
+'Getting the rows and column count
+ strColumnCount = objExcelWS.UsedRange.Columns.Count
+ strTotRows = objExcelWS.UsedRange.Rows.Count
+strTable = "<table border=""""2"""">"
+'Create html table based on content of the excel file
+ For j=1 to strTotRows
+  strTable = strTable & "<tr>"
+  For i=1 to strColumnCount
+    strData = Trim(objExcelWS.Cells(j,i))
+    strTable= strTable & "<td>"& strData &"</td>"
+  Next
+  strTable =strTable & "</tr>"
+ Next
+ strTable = strTable & "</table>"
+ set objFSO=Createobject("scripting.FileSystemObject")
+ set objtxt = objFSO.createTextFile(strHTMLFile)
+    objtxt.write(strTable)
+'Closing the workbook
+ objExcelWB.Close
+ set objFSO =nothing
+End Function
+
+
+
+Sub TestGetObjectByQuerySelector
+  Dim WebElementList, CSSSelector
+  CSSSelector = "#resultTable > tbody > tr > td > a"
+  Dim Count
+  
+  WebElementList = QuerySelectorAll(CSSSelector)
+  Count = BuiltIn.VarArrayHighBound(WebElementList,1)
+    
+  If Count > -1 Then
+      For i=0 To Count 
+          Log.Message(aqString.Trim(WebElementList(i).contentText)) 
+          Log.Message(aqString.Trim(WebElementList(i).getAttribute("href"))) 
+      Next
+  Else
+      Log.Warning("Did not find any elements matching the CSS selector: " + CSSSelector)
+  End If
+End Sub
+
+
+
+Function QuerySelectorAll(QuerySelector)
+  Dim PageObj, WebElementList
+  Set QuerySelectorAll = NOTHING
+  Set PageObj = Sys.Browser(qaGlobalVar.BROWSERNAME).Page(qaGlobalVar.PAGEURL)
+  PageObj.Wait(5000)
+  If NOT(IsNull(PageObj))Then 
+
+    WebElementList = PageObj.QuerySelectorAll(QuerySelector)
+    
+    If Not(Isnull(WebElementList)) and not(IsEmpty(WebElementList)) Then
+      QuerySelectorAll = WebElementList
+    End If 
+  End If
+End Function
+
+
+Sub SimpleParsing
+
+Dim page, table
+
+  url = "http://samples.msdn.microsoft.com/workshop/samples/author/tables/HTML_Table.htm"
+  Browsers.Item(btIExplorer).Run url
+  Set page = Sys.Browser("*").Page("*")
+
+  Set table = page.FindChild("tagName", "table", 10)
+  If table.Exists Then
+
+    ' Goes through the rows and cells of the table
+    For i = 0 To table.rows.length - 1
+
+      Log.AppendFolder("Row " & i)
+      For j = 0 To table.rows.item(i).cells.length - 1
+        Log.Message("Cell " & j & ": " & table.rows.item(i).cells.item(j).innerText)
+      Next
+      Log.PopLogFolder
+    Next
+
+  Else
+    Log.Warning("The table was not found")
+
+  End If
+End Sub
+
+
+Sub IndicatorDemo()
+
+  ' Shows the indicator icon
+  Indicator.Show()
+  ' Pushes text to the indicator
+  Indicator.PushText("Hello!")
+  ' Delays the script execution for 2 seconds
+  Call aqUtils.Delay(5000, Indicator.Text)
+  
+  ' Pushes new text to the indicator 
+  Indicator.PushText("New indicator text.")
+  Call aqUtils.Delay(5000, Indicator.Text)
+  
+  ' Restores the previous indictor text - "Hello!"
+  Indicator.PopText()
+  Call aqUtils.Delay(10000, Indicator.Text)
+  
+  ' Clears the history of the indicator's user messages
+  Indicator.Clear()
+  
+  ' Hides the indicator icon
+  Indicator.Hide() 
+
+End Sub

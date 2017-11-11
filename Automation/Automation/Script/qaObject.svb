@@ -1,0 +1,188 @@
+﻿'USEUNIT qaGlobalVar
+'USEUNIT qaAppConfig
+
+Function GetObject(objSelector)
+  Dim findMethod, findParam, strLen, addParam
+	Set GetObject = NOTHING
+
+	aqString.ListSeparator = ";"
+	strLen = aqString.GetListLength(objSelector)
+  
+	Select Case True
+  	Case strLen = 2   
+      findMethod  =   aqString.GetListItem(objSelector,0)
+      findParam   =   aqString.GetListItem(objSelector,1)
+  	Case strLen = 3   
+      findMethod  =   aqString.GetListItem(objSelector,0)
+      findParam   =   aqString.GetListItem(objSelector,1)
+      addParam    =   aqString.GetListItem(objSelector,2)
+	End Select
+	
+  Select Case findMethod
+    Case  "xpath"            
+      Set GetObject = qaObject.GetObjectByXpath(findParam)
+    Case  "cssSelector"
+      Set GetObject = qaObject.GetObjectByQuerySelector(findParam)
+    Case  "cssSelectorAll" 
+      Set GetObject = qaObject.getObjectByQSSALL(findParam) 
+    Case  "jqueryTextFind"   
+      Set GetObject = qaObject.getObjectByJquery(findParam,addParam)
+    Case  "skipFind"
+      'set GetObject = OBJREPO
+    Case Else               
+      'ErrDet = "Unknown Find Method, Please check"
+      'call ErrorHandler.catchException("Unknown Find Method", ErrDet)
+    Exit Function
+  End Select
+End Function
+
+Function GetObjectByXpath(xpath)
+  Dim WebElement, PageObj
+  Set GetObjectByXpath = NOTHING
+  Set PageObj = Sys.Browser(qaGlobalVar.BROWSERNAME).Page(qaGlobalVar.PAGEURL)
+  PageObj.Wait(5000)
+  If NOT(IsNull(PageObj))Then
+    WebElement = PageObj.EvaluateXPath(xpath)
+    If Not(Isnull(WebElement)) and not(IsEmpty(WebElement)) Then
+      Set GetObjectByXpath = WebElement(0)
+    End If
+  End If 
+end Function
+
+Function GetObjectByQuerySelector(QuerySelector)
+  Dim WebElement, PageObj
+  Set GetObjectByQuerySelector = NOTHING
+  Set PageObj = Sys.Browser(qaGlobalVar.BROWSERNAME).Page(qaGlobalVar.PAGEURL)
+  PageObj.Wait(5000)
+  If NOT(IsNull(PageObj))Then 
+    Set WebElement = PageObj.QuerySelector(QuerySelector)
+    If Not(Isnull(WebElement)) and not(IsEmpty(WebElement)) Then
+      Set GetObjectByQuerySelector = WebElement
+    End If 
+  End If
+end Function
+
+Function GetObjectByQuerySelectorAll(QuerySelector)
+  Dim WebElement, PageObj
+  Set GetObjectByQuerySelectorAll = NOTHING
+  Set PageObj = Sys.Browser(qaGlobalVar.BROWSERNAME).Page(qaGlobalVar.PAGEURL)
+  PageObj.Wait(5000)
+  If NOT(IsNull(PageObj))Then 
+    Set WebElement = PageObj.QuerySelectorAll(QuerySelector)
+    If Not(Isnull(WebElement)) and not(IsEmpty(WebElement)) Then
+      Set GetObjectByQuerySelectorAll = WebElement
+    End If 
+  End If
+end Function
+
+Function WaitForControl(objSelector)
+  Dim waitTime:waitTime = 50'100
+  Dim WebElement,Page
+  i = 0
+  Set WebElement = qaObject.GetObject(objSelector)
+  while WebElement is Nothing
+    if i > 180 and i < 183 then
+        log.Message "It's been 3 minutes finding this object, Please check app stat"
+    end if
+    
+    If i > waitTime then
+        'ErrDet = "Control not Found: Object = " & cntrlAliasName
+        'call ErrorHandler.catchException("Control not Found", ErrDet)
+        set WaitForControl = NOTHING
+        Exit Function
+    End If
+    'Get a web page object
+    Set Page = Sys.Browser(qaGlobalVar.BROWSERNAME).Page(qaGlobalVar.PAGEURL)
+    Page.Wait(2000)
+    
+    Set WebElement = qaObject.GetObject(objSelector)
+    call aqutils.Delay(1000,"Waiting for Obj with Selector: " + objSelector)   
+    i = i + 1
+  Wend
+  set WaitForControl = WebElement 
+end function
+
+Function CreateObjRepo(ByRef ObjRepo, ObjSheetName, XlWorkBk)
+	Dim objexcel, objWorkbook, objDriverSheet, ColumnCount, RowCount, ObjWScript, ObjCDO
+  
+  CreateObjRepo = FALSE
+  
+  Call qaObject.CloseExcel
+  Set ObjWScript = CreateObject("WScript.Shell")
+  Set ObjCDO = CreateObject("CDO.Message")
+	set objexcel = Createobject("Excel.Application")
+	Set objWorkbook = objExcel.WorkBooks.Open(XlWorkBk)
+	Set objDriverSheet = objWorkbook.Worksheets(ObjSheetName)
+	
+  ColumnCount = objDriverSheet.usedrange.columns.count
+	RowCount = objDriverSheet.usedrange.rows.count
+	
+  For i = 2 to RowCount
+  
+		Alias = objDriversheet.cells(i,2)
+		Object = objDriversheet.cells(i,3)+ ";" +objDriversheet.cells(i,4)
+		
+    If ObjRepo.Exists(Alias) Then
+			Log.Warning "*** Key Already Exists. {Alias ='" & Alias & "'} ***"
+			dup = TRUE
+		Else
+			ObjRepo.Add Alias, Object 
+		End if
+	Next
+	If dup = FALSE Then
+		CreateObjRepo = TRUE
+		'Log.Message "Dictionary Elements Number: " + Cstr(ObjRepo.Count)
+	End If
+End Function
+
+Function GetObjectRepository(SuiteName) 
+  Call qaAppConfig.InitializeStaticData()
+  GetObjectRepository = qaGlobalVar.REPMAPPING.item(qaGlobalVar.SUITETORUN)
+End Function
+
+Function GetInputFilePath(SuiteName)
+  GetInputFilePath = Project.Path + "InputfFile\" + qaGlobalVar.APPMAPPING.item(qaGlobalVar.REPMAPPING.item(SuiteName)) + ".xlsx"
+end Function
+
+Function CloseExcel
+   Dim old_app
+   set old_app = Sys.WaitProcess("Excel", 100)
+   if old_app.Exists then
+      call old_app.Close()
+      if old_app.Exists then
+        'Log.Message AppName + " was not closed successfully and will be terminated."
+        old_app.Terminate()
+        aqUtils.Delay 1000
+      end if
+   end if
+end Function
+
+Function GetObjectSelector(objSelectorAlias)
+  Dim objSelector
+  GetObjectSelector = Null
+  if qaGlobalVar.OBJREPO.Exists(objSelectorAlias) Then
+    objSelector = qaGlobalVar.OBJREPO(objSelectorAlias)
+    aqString.ListSeparator = ";"
+    strLen = aqString.GetListLength(objSelector)
+    if strLen >= 2 then
+      GetObjectSelector = objSelector
+    else
+      Log.Message = "Control Not Found: Object = " & objSelectorAlias
+      Exit Function
+    End if
+  Else
+    Log.Message "Missing Control {'" + objSelectorAlias +"'}"
+  End if
+End Function
+
+Function GetWebElement(objSelector)
+  Dim WebElement
+  Set GetWebElement = NOTHING
+  Set WebElement = qaObject.GetObject(objSelector)
+   
+  If WebElement is Nothing Then
+    Set WebElement = qaObject.WaitForControl(objSelector)
+  End If
+  
+  Set GetWebElement = WebElement
+End Function

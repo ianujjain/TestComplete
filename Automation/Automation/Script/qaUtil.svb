@@ -1,0 +1,97 @@
+﻿'USEUNIT qaAppConfig
+'USEUNIT qaGlobalVar
+
+Function GetTimestamp()
+  Dim timeStamp
+  timeStamp = now
+  timeStamp = Replace(timeStamp,":",".")
+  timeStamp = Replace(timeStamp,"/",".")
+  timeStamp = Replace(timeStamp," ",".")
+  GetTimestamp = timeStamp
+End Function
+
+Sub TerminateProcess
+  Sys.OleObject("WScript.Shell").Exec("cmd /c TASKKILL /F /IM firefox.exe /T")
+  Sys.OleObject("WScript.Shell").Exec("cmd /c TASKKILL /F /IM chrome.exe /T")
+  Sys.OleObject("WScript.Shell").Exec("cmd /c TASKKILL /F /IM iexplore.exe /T")
+  Sys.OleObject("WScript.Shell").Exec("cmd /c TASKKILL /F /IM Excel.exe /T")
+end Sub
+
+sub closeOpenApp(AppName)
+   Dim old_app
+   set old_app = Sys.WaitProcess(AppName, 100)
+   if old_app.Exists then
+      call old_app.Close()
+      if old_app.Exists then
+        Log.Message AppName + " was not closed successfully and will be terminated."
+        old_app.Terminate()
+        aqUtils.Delay 1000
+      end if
+   end if
+end sub
+
+Sub ClearAllChromeStoredInfo
+  Log.Message AQEnvironment.GetEnvironmentVariable("LocalAppData")
+  Dim objFSO, strAppDataFolder, FilesInFolder, FoldersInFolder
+  
+  Set objFSO = CreateObject("Scripting.FileSystemObject")
+  
+  strAppDataFolder = AQEnvironment.GetEnvironmentVariable("LocalAppData") & "\Google\Chrome\User Data\Default"
+  
+  Set FilesInFolder = objFSO.GetFolder(strAppDataFolder).Files
+  Set FoldersInFolder = objFSO.GetFolder(strAppDataFolder).SubFolders
+
+  For Each Folder In FoldersInFolder
+    If Not UCase(Folder.Name) = "EXTENSIONS" And Not UCase(Folder.Name) = "EXTENSION STATE" Then
+      Folder.Delete True
+    End If
+  Next
+
+  For Each File In FilesInFolder
+    If Not UCase(File.Name) = "PREFERENCES" Then File.Delete
+  Next
+End Sub
+
+
+
+' Clears the Firefox cache, passwords, cookies, etc...
+
+Sub ClearAllFirefoxStoredInfo
+
+    Set objFSO = CreateObject("Scripting.FileSystemObject")
+
+    
+
+    strLocalAppData = AQEnvironment.GetEnvironmentVariable("LocalAppData") & "\Mozilla\Firefox\Profiles"
+
+    strRoamingAppData = AQEnvironment.GetEnvironmentVariable("AppData") & "\Mozilla\Firefox\Profiles"
+
+
+
+    Set FoldersInFolder = objFSO.GetFolder(strLocalAppData).SubFolders
+
+    For Each Folder In FoldersInFolder
+
+        Folder.Delete True
+
+    Next
+
+    
+
+    Set FoldersInFolder = objFSO.GetFolder(strRoamingAppData).SubFolders
+
+    For Each Folder In FoldersInFolder
+
+        Set FilesInFolder = Folder.Files
+
+        For Each File in FilesInFolder
+
+            If Instr(1, File.Name, "sqlite") > 0 Then File.Delete
+
+        Next
+
+    Next
+
+    
+
+End Sub

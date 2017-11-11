@@ -1,0 +1,140 @@
+﻿'USEUNIT qaUtil
+'USEUNIT qaGlobalVar
+
+Dim arrSheet()
+
+Sub Main
+  Dim ColumnsCount 
+  ColumnsCount = GetColumnCount
+  Log.Message ColumnsCount
+  For Arrindex = 2 To ColumnsCount Step 2
+    call TerminateProcess
+    ReadExcelFile(Arrindex)
+  Next
+End Sub
+
+
+Function GetColumnCount
+  Dim objExcel, objSheet, objCells
+  GetColumnCount = Null
+
+  Set objExcel = CreateObject("Excel.Application")
+  objExcel.DisplayAlerts = 0  
+  Call objExcel.Workbooks.Open("D:\A.xlsx", False, True)
+  Set objSheet = objExcel.ActiveWorkbook.Worksheets(1)
+
+  ColumnsCount = objSheet.UsedRange.Columns.Count
+  
+  Call objExcel.ActiveWorkbook.Close(False)
+  objExcel.Application.Quit
+  GetColumnCount = ColumnsCount
+End Function
+
+Function ReadExcelFile(index)
+
+
+  ' Local variable declarations
+  Dim objExcel, objSheet, objCells
+  Dim nUsedRows, nUsedCols, nTop, nLeft, nRow, nCol
+  'Dim arrSheet()
+
+  Set objExcel = CreateObject("Excel.Application")
+  objExcel.DisplayAlerts = 0  
+  Call objExcel.Workbooks.Open("D:\A.xlsx", False, True)
+  Set objSheet = objExcel.ActiveWorkbook.Worksheets(1)
+
+
+  RowsCount = objSheet.UsedRange.Rows.Count
+  ColumnsCount = objSheet.UsedRange.Columns.Count
+
+  Set objCells = objSheet.Cells
+
+  Set myArrayList   =   CreateObject("System.Collections.ArrayList")
+  myArrayList.Clear
+  For Row = 3 To RowsCount
+    If(aqString.Trim(aqString.ToUpper(objCells(Row,index+1).Value)) = "Y")Then
+      myArrayList.Add aqString.Trim(objCells(Row,1).Value) &"#"&aqString.Trim(objCells(Row,index).Value)
+    End If
+  Next
+  
+  Erase arrSheet
+  ReDim arrSheet(myArrayList.Count-1,1)
+  
+  For index = 0 To myArrayList.Count-1
+  	aqString.ListSeparator = "#"
+    arrSheet(index,0) = aqString.GetListItem(myArrayList(index),0)
+    arrSheet(index,1) = aqString.GetListItem(myArrayList(index),1)
+  Next
+  Log.Message "Row Count: "& UBound(arrSheet) &"; Col Count: " & UBound(arrSheet,2)
+  Call CreateXSLLogFile
+  Call objExcel.ActiveWorkbook.Close(False)
+  objExcel.Application.Quit
+End Function
+
+Function CreateXSLLogFile
+  Dim TimeStamp
+  
+  CreateLogFile = False
+  TimeStamp =  qaUtil.GetTimestamp()
+  
+  qaGlobalVar.REPORTPATH = Project.Path + "TestResults\" & qaGlobalVar.SUITETORUN & TimeStamp & ".xlsx"
+
+  Call qaUtil.closeOpenApp("excel")
+    
+  Set xlobj = Createobject("Excel.Application")
+  xlobj.Visible= True   
+  xlobj.Workbooks.Add
+    
+  Set workBookObj=xlobj.Workbooks(1)
+  workBookObj.SaveAs qaGlobalVar.REPORTPATH
+  xlobj.Quit
+    
+  Set workBookObj = Nothing
+  Set xlobj = Nothing
+  If aqFileSystem.Exists(qaGlobalVar.REPORTPATH) Then
+    Call CreateXSLLogSheet(qaGlobalVar.REPORTPATH,qaGlobalVar.SUITETORUN,1)
+    CreateXSLLogFile = True
+  Else
+    CreateXSLLogFile = False
+  End If 
+End Function
+
+Sub CreateXSLLogSheet(ReportPath,SheetName,AppIndex)
+  Dim xlobj, bookObj, wsheetObj, objRange
+  Call TerminateProcess
+  Set xlobj =  Createobject("Excel.Application")
+  Set bookObj = xlobj.Workbooks.Open(ReportPath)
+  
+  if AppIndex > 3 then
+    call bookObj.Sheets.Add(, bookObj.Sheets(bookObj.Sheets.Count))
+  end if
+    
+  bookObj.Worksheets(AppIndex).name = SheetName
+    
+  Set wsheetObj = bookObj.Worksheets(SheetName)
+  
+  For rowIndex = 0 To UBound(arrSheet)
+      'Row wise
+      'wsheetObj.cells(rowIndex+1,1) = arrSheet(rowIndex,0)
+      'wsheetObj.cells(rowIndex+1,2) = arrSheet(rowIndex,1)
+      
+      'Col wise
+    wsheetObj.cells(1,rowIndex+1) = arrSheet(rowIndex,0)
+    wsheetObj.cells(2,rowIndex+1) = arrSheet(rowIndex,1)
+  Next
+
+
+  Set objRange = wsheetObj.UsedRange
+  objRange.EntireColumn.Autofit()
+  
+  bookObj.Save
+  xlobj.Quit
+  
+  Set bookObj = Nothing
+  Set xlobj = Nothing
+End Sub
+
+Sub TerminateProcess
+  Sys.OleObject("WScript.Shell").Exec("cmd /c TASKKILL /F /IM Excel.exe /T")
+  Sys.OleObject("WScript.Shell").Exec("cmd /c TASKKILL /F /IM dllhost.exe /T")
+end Sub

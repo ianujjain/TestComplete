@@ -1,0 +1,28 @@
+﻿Sub DemoArrayOfArrayList
+  Dim Arr(1)
+  
+  Set myArrayList   =   CreateObject("System.Collections.ArrayList")
+  Set myArrayList1  =   CreateObject("System.Collections.ArrayList")
+  myArrayList.Add "Afghanistan ;ASIA (EX. NEAR EAST)"
+  myArrayList.Add "Albania ;EASTERN EUROPE"
+  myArrayList.Add "Antigua & Barbuda ;LATIN AMER. & CARIB"
+  myArrayList.Add "Argentina ;LATIN AMER. & CARIB"
+  Set Arr(0) = myArrayList
+  
+  
+  myArrayList1.Add "Algeria ;NORTHERN AFRICA "
+  myArrayList1.Add "American Samoa ;OCEANIA"
+  myArrayList1.Add "Andorra ;WESTERN EUROPE"
+  myArrayList1.Add "Angola ;SUB-SAHARAN AFRICA"
+  myArrayList1.Add "Anguilla ;LATIN AMER. & CARIB"
+  Set Arr(1) = myArrayList1
+
+  
+  'Dim item
+  'Set item = CreateObject( "System.Collections.ArrayList" )
+  For arrIndex = 0 To UBound(Arr)
+    For Each item In Arr(arrIndex)
+        Log.Message item
+    Next
+  Next
+End Sub

@@ -1,0 +1,165 @@
+﻿'USEUNIT qaUtil
+'USEUNIT qaGlobalVar
+
+Function CreateArrayList
+  CreateArrayList = False
+  Set qaGlobalVar.ARRLOG = CreateObject("System.Collections.ArrayList")
+  IF NOT(qaGlobalVar.ARRLOG Is Nothing)Then
+    CreateArrayList = True
+  Else
+    CreateArrayList = False
+  End IF
+End Function
+
+Sub LogReportInArrayList(Message)
+  IF NOT(qaGlobalVar.ARRLOG Is Nothing)Then
+    qaGlobalVar.ARRLOG.Add Message
+  Else
+    Log.Error"Error"
+    Exit Sub
+  End IF
+End Sub
+
+
+Sub GenerateReport
+  Select Case aqString.Trim(aqString.ToUpper(qaGlobalVar.REPORTTYPE))
+    Case  "EXCEL"            
+      Call ConvertArrListToExcel
+    Case  "CSV"
+      Call ConvertArrListToExcel
+    Case Else
+      Call ConvertArrListToExcel
+  End Select
+End Sub
+
+Sub ConvertArrListToExcel
+  Dim StartTime, EndTime,Difference,Index
+  Call CreateXSLLogFile
+  StartTime = aqDateTime.Time 
+  
+  For Each Message in qaGlobalVar.ARRLOG
+    aqString.ListSeparator = ","
+    aqString.GetListLength(Message)
+    Call LogReportInXSL(qaGlobalVar.REPORTPATH,qaGlobalVar.SUITETORUN, aqString.GetListItem(Message,0),aqString.GetListItem(Message,1) , aqString.GetListItem(Message,2) , aqString.GetListItem(Message,3))
+  Next
+  
+  EndTime = aqDateTime.Time
+  Difference = aqDateTime.TimeInterval(StartTime, EndTime)  
+End Sub
+
+Function CreateXSLLogFile
+  Dim TimeStamp
+  
+  CreateLogFile = False
+  TimeStamp =  qaUtil.GetTimestamp()
+  
+  qaGlobalVar.REPORTPATH = Project.Path + "TestResults\" & qaGlobalVar.SUITETORUN & "_Results_" & TimeStamp & ".xlsx"
+
+  Call qaUtil.closeOpenApp("excel")
+    
+  Set xlobj = Createobject("Excel.Application")
+  xlobj.Visible= True   
+  xlobj.Workbooks.Add
+    
+  Set workBookObj=xlobj.Workbooks(1)
+  workBookObj.SaveAs qaGlobalVar.REPORTPATH
+  xlobj.Quit
+    
+  Set workBookObj = Nothing
+  Set xlobj = Nothing
+  If aqFileSystem.Exists(qaGlobalVar.REPORTPATH) Then
+    Call CreateXSLLogSheet(qaGlobalVar.REPORTPATH,qaGlobalVar.SUITETORUN,1)
+    CreateXSLLogFile = True
+  Else
+    CreateXSLLogFile = False
+  End If 
+End Function
+
+Sub CreateXSLLogSheet(ReportPath,SheetName,AppIndex)
+  Dim xlobj, bookObj, wsheetObj, objRange
+  
+  Set xlobj =  Createobject("Excel.Application")
+  Set bookObj = xlobj.Workbooks.Open(ReportPath)
+  
+  if AppIndex > 3 then
+    call bookObj.Sheets.Add(, bookObj.Sheets(bookObj.Sheets.Count))
+  end if
+    
+  bookObj.Worksheets(AppIndex).name = SheetName
+    
+  Set wsheetObj = bookObj.Worksheets(SheetName)
+    
+  wsheetObj.cells(1,1) = "Step Name"
+  wsheetObj.cells(1,1).font.bold = True
+  wsheetObj.cells(1,1).font.Color = vbWhite
+  wsheetObj.cells(1,1).interior.ColorIndex  = 9
+    
+  wsheetObj.cells(1,2) = "Message"
+  wsheetObj.cells(1,2).font.bold = True
+  wsheetObj.cells(1,2).font.Color = vbWhite
+  wsheetObj.cells(1,2).interior.ColorIndex  = 9
+    
+  wsheetObj.cells(1,3) = "Status"
+  wsheetObj.cells(1,3).font.bold = True
+  wsheetObj.cells(1,3).font.Color = vbWhite
+  wsheetObj.cells(1,3).interior.ColorIndex  = 9
+
+  Set objRange = wsheetObj.UsedRange
+  objRange.EntireColumn.Autofit()
+  
+  bookObj.Save
+  xlobj.Quit
+  
+  Set bookObj = Nothing
+  Set xlobj = Nothing
+End Sub
+
+Sub LogReportInXSL(ReportPath,SheetName,StepName,Message,Status,ColorIndex)
+
+  Dim xlobj, bookObj, wsheetObj, objRange, RowCount, NextRow
+  
+  Set xlobj =  Createobject("Excel.Application")
+  Set bookObj = xlobj.Workbooks.Open(ReportPath)
+  Set wsheetObj = bookObj.Worksheets(SheetName)
+  
+  RowCount = wsheetObj.usedrange.rows.count
+  NextRow = RowCount + 1
+  
+  wsheetObj.cells(NextRow,1) = aqString.Trim(StepName)
+  wsheetObj.cells(NextRow,2) = aqString.Trim(Message)
+  wsheetObj.cells(NextRow,3) = aqString.Trim(aqString.ToUpper(Status))
+  
+  Select Case aqString.ToUpper(Status)
+		Case "PASS"  
+      wsheetObj.cells(NextRow,3).font.ColorIndex = 10
+		Case "FAIL"   
+      wsheetObj.cells(NextRow,3).font.ColorIndex = 3
+    Case "SKIP"   
+      wsheetObj.cells(NextRow,3).font.color = vbblack
+		Case Else     
+      wsheetObj.cells(NextRow,3).font.color = vbblack
+	End Select
+  
+  
+  IF ColorIndex <> "Null" Then
+    wsheetObj.cells(NextRow,1).Interior.ColorIndex = ColorIndex
+    wsheetObj.cells(NextRow,2).Interior.ColorIndex = ColorIndex
+    wsheetObj.cells(NextRow,3).Interior.ColorIndex = ColorIndex
+  END IF
+  
+  
+  wsheetObj.cells(NextRow,3).font.bold = True
+	wsheetObj.Range("A:C").Columns.AutoFit
+  
+  RowCount = wsheetObj.usedrange.rows.count
+  
+	wsheetObj.Range(wsheetObj.cells(1,1),wsheetObj.cells(RowCount,3)).Borders.LineStyle = 1
+	wsheetObj.Range(wsheetObj.cells(1,1),wsheetObj.cells(RowCount,3)).Borders.color = RGB(0,0,0)
+	wsheetObj.Range(wsheetObj.cells(1,1),wsheetObj.cells(RowCount,3)).Borders.Weight = 2
+  
+  bookObj.Save
+  xlobj.Quit
+  
+  Set bookObj = Nothing
+  Set xlobj = Nothing
+End Sub
